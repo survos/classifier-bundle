@@ -1,0 +1,42 @@
+{
+    "name": "survos/classifier-bundle",
+    "description": "Assign controlled labels to text with interchangeable strategies (rules, Jev), and benchmark them against each other",
+    "keywords": ["classification", "taxonomy", "tags", "jev", "typesafe"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tac Tacelosky",
+            "email": "tacman@gmail.com"
+        }
+    ],
+    "type": "symfony-bundle",
+    "require": {
+        "php": "^8.5",
+        "survos/jsonl-bundle": "^2.5",
+        "survos/kit-bundle": "^2.5",
+        "symfony/config": "^8.1",
+        "symfony/console": "^8.1",
+        "symfony/dependency-injection": "^8.1",
+        "symfony/framework-bundle": "^8.1",
+        "symfony/http-kernel": "^8.1",
+        "symfony/intl": "^8.1"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^13.0",
+        "survos/command-bundle": "^2.34",
+        "survos/media-topics": "^2.34",
+        "symfony/ai-type-safe-platform": "^0.14"
+    },
+    "suggest": {
+        "survos/media-topics": "Adds IPTC Media Topics as the media_topics vocabulary.",
+        "symfony/ai-type-safe-platform": "Enables the Jev strategy (TypeSafe System One).",
+        "survos/command-bundle": "Exposes the classifier commands as MCP agent tools."
+    },
+    "autoload": {
+        "psr-4": {
+            "Survos\\ClassifierBundle\\": "src/",
+            "Survos\\ClassifierBundle\\Tests\\": "tests/"
+        }
+    }
+}

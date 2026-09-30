@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Runs the bundle's commands without a host app, e.g. bin/console classifier:benchmark labeled.jsonl state --concepts=tags.jsonl
+
+use Survos\ClassifierBundle\Tests\TestKernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+
+require dirname(__DIR__).'/tests/bootstrap.php';
+
+exit(new Application(new TestKernel('test', true))->run());
