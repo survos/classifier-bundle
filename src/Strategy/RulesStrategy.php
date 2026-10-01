@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Survos\ClassifierBundle\Strategy;
 
 use Survos\ClassifierBundle\Model\Assignment;
+use Survos\ClassifierBundle\Model\Concept;
 use Survos\ClassifierBundle\Model\Document;
 use Survos\ClassifierBundle\Model\Result;
 use Survos\ClassifierBundle\Model\RuleSet;
+use Survos\ClassifierBundle\Model\Term;
 use Survos\ClassifierBundle\Vocabulary\VocabularyInterface;
 
 /**
@@ -32,7 +34,6 @@ final class RulesStrategy implements StrategyInterface
 
     public function classify(Document $document, VocabularyInterface $vocabulary): Result
     {
-        $text = implode("\n", array_filter(array_map($document->text(...), $this->scopes), static fn (string $t): bool => $t !== ''));
         $assignments = [];
         $hasRules = false;
         foreach ($vocabulary->all() as $concept) {
@@ -40,9 +41,9 @@ final class RulesStrategy implements StrategyInterface
                 continue;
             }
             $hasRules = true;
-            [$score, $evidence] = $this->score($concept->rules, $text);
-            if ($evidence !== [] && $score >= $concept->rules->threshold) {
-                $assignments[] = new Assignment($vocabulary->name(), $concept->code, $this->name, (float) $score, $evidence);
+            $assignment = $this->evaluate($concept, $document, $vocabulary->name());
+            if ($assignment !== null) {
+                $assignments[] = $assignment;
             }
         }
         if (!$hasRules) {
@@ -52,21 +53,57 @@ final class RulesStrategy implements StrategyInterface
         return new Result($vocabulary->name(), $this->name, $assignments);
     }
 
-    /** @return array{int, list<string>} */
-    private function score(RuleSet $rules, string $text): array
+    /**
+     * Decisive rules first: a metadata or text rule that accepts settles the concept and nothing
+     * else is consulted; one that rejects withholds it. Otherwise scores are added (negative ones
+     * take points away) and the concept is assigned when the total reaches the threshold.
+     */
+    private function evaluate(Concept $concept, Document $document, string $vocabulary): ?Assignment
     {
-        foreach ($rules->exceptions as $exception) {
-            $text = (string) preg_replace($exception->toRegex(), ' ', $text);
+        $rules = $concept->rules;
+        $texts = [];
+        $text = function (?string $scope) use (&$texts, $rules, $document): string {
+            return $texts[$scope ?? ''] ??= $this->masked($rules, $scope === null
+            ? implode("\n", array_filter(array_map($document->text(...), $this->scopes), static fn (string $t): bool => $t !== ''))
+            : $document->text($scope));
+        };
+        $matches = fn (Term $term): bool => $term->meta !== null
+            ? $term->matchesMetadata($document)
+            : preg_match($term->toRegex(), $text($term->scope)) === 1;
+
+        foreach ($rules->terms as $term) {
+            if ($term->decision !== null && $matches($term)) {
+                return $term->decision === Term::ACCEPT
+                    ? new Assignment($vocabulary, $concept->code, $this->name, (float) max($term->score, RuleSet::STRONG), [$this->describe($term)], decisive: true)
+                    : null;
+            }
         }
         $score = 0;
         $evidence = [];
         foreach ($rules->terms as $term) {
-            if (preg_match($term->toRegex(), $text) === 1) {
+            if ($term->decision === null && $matches($term)) {
                 $score += $term->score;
-                $evidence[] = $term->pattern;
+                $evidence[] = $this->describe($term);
             }
         }
 
-        return [$score, $evidence];
+        return $evidence !== [] && $score >= $rules->threshold
+            ? new Assignment($vocabulary, $concept->code, $this->name, (float) $score, $evidence)
+            : null;
+    }
+
+    private function masked(RuleSet $rules, string $text): string
+    {
+        foreach ($rules->exceptions as $exception) {
+            $text = (string) preg_replace($exception->toRegex(), ' ', $text);
+        }
+
+        return $text;
+    }
+
+    private function describe(Term $term): string
+    {
+        return ($term->meta !== null ? $term->meta.'='.$term->pattern : $term->pattern)
+            .($term->score < 0 ? sprintf(' (%d)', $term->score) : '');
     }
 }

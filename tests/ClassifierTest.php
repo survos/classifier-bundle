@@ -120,4 +120,42 @@ final class ClassifierTest extends TestCase
         self::assertSame([0.5, 0.5], [$report['precision'], $report['recall']]);
         self::assertSame([1, 1], [$report['abstained'], $report['goldLabelsInAbstained']]);
     }
+
+    public function testScoresAddAndDropAndDecisiveRulesStopEverything(): void
+    {
+        $vocabulary = ArrayVocabulary::fromRows('project', [
+            ['code' => 'tobacco', 'threshold' => 10, 'rules' => [
+                ['match' => 'cigarette', 'score' => 6],
+                ['match' => 'smoking', 'score' => 6],
+                ['match' => 'smoking gun', 'score' => -8],
+                ['regex' => 'R\\.?J\\.? Reynolds', 'scope' => 'headline', 'score' => 10],
+                ['meta' => 'host', 'is' => 'tobaccoreporter.com', 'accept' => true],
+                ['meta' => 'marking', 'is' => 'spam', 'reject' => true],
+            ]],
+        ]);
+        $classify = static fn (Document $d): Result => new RulesStrategy()->classify($d, $vocabulary);
+        $codes = static fn (Document $d): array => $classify($d)->codes();
+
+        self::assertSame([], $codes(new Document('1', 'Cigarette sales fall')), 'one 6-point hit is under the threshold');
+        self::assertSame(['tobacco'], $codes(new Document('1', 'Cigarette and smoking rates fall')));
+        self::assertSame([], $codes(new Document('1', 'Cigarette sales and a smoking gun')), 'the penalty drops the total');
+        self::assertSame(['tobacco'], $codes(new Document('1', 'R.J. Reynolds posts profit')));
+        self::assertSame([], $codes(new Document('1', 'Weather', 'R.J. Reynolds posts profit')), 'scope: headline only');
+
+        $accepted = $classify(new Document('1', 'Weather today', metadata: ['host' => 'tobaccoreporter.com']));
+        self::assertSame(['tobacco'], $accepted->codes());
+        self::assertTrue($accepted->assignments[0]->decisive);
+        self::assertSame(['host=tobaccoreporter.com'], $accepted->assignments[0]->evidence);
+
+        self::assertSame([], $codes(new Document('1', 'Cigarette and smoking rates fall', metadata: ['marking' => 'spam'])), 'reject settles it too');
+    }
+
+    public function testLegacyBangSuffixesStillMeanStrongAndAccept(): void
+    {
+        $vocabulary = ArrayVocabulary::fromRows('t', [['code' => 'a', 'triggerTerms' => ['iqos!!', 'vape!']]]);
+        $strategy = new RulesStrategy();
+        $hit = $strategy->classify(new Document('1', 'New iqos recall'), $vocabulary)->assignments[0];
+        self::assertTrue($hit->decisive);
+        self::assertSame(100.0, $strategy->classify(new Document('1', 'a vape shop'), $vocabulary)->assignments[0]->score);
+    }
 }

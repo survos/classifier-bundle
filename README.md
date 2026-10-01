@@ -63,6 +63,33 @@ before matching, so with the trigger `tobacco` and the exception `Alcohol, Tobac
 a story about an ATF gun raid is not labeled tobacco, but an ATF story that also mentions smuggled
 tobacco is. In `triggerTerms`, a leading `!` marks an exception.
 
+### Scores, and rules that settle it
+
+A concept can carry structured rules beside its term lists (`rules` in `ArrayVocabulary::fromRows()`,
+or `RuleSet::fromRules()`). Matches add to a score; the concept is assigned when the total reaches its
+`threshold` (default 1).
+
+```php
+ArrayVocabulary::fromRows('project', [['code' => 'tobacco', 'threshold' => 10, 'rules' => [
+    ['match' => 'cigarette', 'score' => 6],                          // a hit adds 6
+    ['match' => 'smoking gun', 'score' => -8],                       // a hit takes 8 away
+    ['regex' => 'R\.?J\.? Reynolds', 'scope' => 'headline', 'score' => 10],
+    ['except' => 'Alcohol, Tobacco and Firearms'],                   // blanked out before matching
+    ['meta' => 'host', 'is' => 'tobaccoreporter.com', 'accept' => true],  // existing metadata: accept, nothing else consulted
+    ['meta' => 'marking', 'is' => 'spam', 'reject' => true],         // ... or reject outright
+]]]);
+```
+
+Options per rule: `score` (default 1, may be negative), `scope` (`headline`, `summary` or `body`;
+default is what the strategy reads), `case` (default: case-sensitive iff the term has a capital),
+`word` (whole words, default true). `meta` rules test `Document::$metadata`, which is whatever the
+caller already knows about the item (host, source, marking, tag ids ...); a list value matches if it
+contains the value. An `accept` rule, in text or metadata, assigns the concept with
+`Assignment::$decisive = true` and stops evaluating it; `reject` withholds it. Decisive rules are
+checked before any score is added, wherever they appear in the list.
+
+The older term syntax still works: `term!` is worth 100, `term!!` accepts outright, `!term` is an exception.
+
 ### Jev (optional)
 
 ```bash

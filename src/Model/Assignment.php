@@ -17,6 +17,8 @@ final readonly class Assignment
         public string $strategy,
         public float $score = 1.0,
         public array $evidence = [],
+        /** A rule settled it outright (accept): nothing else needed to be consulted. */
+        public bool $decisive = false,
     ) {}
 
     public function isEditorial(): bool

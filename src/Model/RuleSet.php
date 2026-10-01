@@ -23,9 +23,69 @@ final readonly class RuleSet
         public int $threshold = 1,
     ) {}
 
+    /** What "term!" is worth: enough to outweigh any ordinary penalty. */
+    public const int STRONG = 100;
+
     /**
-     * Reads news' Tag columns. Trigger-term syntax: "term!" and "term!!" are strong triggers,
-     * "!term" is an exception; a term containing an uppercase letter is case-sensitive.
+     * Structured rules, as an app would store them as JSON. Each rule is one of:
+     *
+     *   {"match": "Reynolds", "score": 10}                       add 10 when the word is found
+     *   {"match": "Reynolds Road", "score": -10}                 take 10 away
+     *   {"regex": "R\\.?J\\.? Reynolds", "scope": "headline"}    a regular expression, headline only
+     *   {"meta": "host", "is": "tobaccoreporter.com", "accept": true}   existing metadata: accept outright, no more rules
+     *   {"meta": "marking", "is": "spam", "reject": true}        ... or reject outright
+     *   {"except": "Alcohol, Tobacco and Firearms"}              blank this phrase out before matching
+     *
+     * Options: "case" (true/false, default: case-sensitive iff the term has a capital), "word" (whole words,
+     * default true), "scope" (headline|summary|body), "score" (default 1), and a top-level "threshold".
+     *
+     * @param list<array<string, mixed>> $rules
+     */
+    public static function fromRules(array $rules, int $threshold = 1): self
+    {
+        $terms = $masks = [];
+        foreach ($rules as $rule) {
+            if (!is_array($rule)) {
+                continue;  // tolerate the [""] that old rows hold
+            }
+            $decision = !empty($rule['accept']) ? Term::ACCEPT : (!empty($rule['reject']) ? Term::REJECT : null);
+            if (isset($rule['except'])) {
+                $masks[] = new Term((string) $rule['except'], (bool) ($rule['case'] ?? false), scope: $rule['scope'] ?? null);
+                continue;
+            }
+            if (isset($rule['meta'])) {
+                $terms[] = new Term((string) ($rule['is'] ?? $rule['match'] ?? ''), false, false, isset($rule['regex']),
+                    (int) ($rule['score'] ?? 1), decision: $decision, meta: (string) $rule['meta']);
+                continue;
+            }
+            $pattern = (string) ($rule['regex'] ?? $rule['match'] ?? '');
+            if ($pattern === '') {
+                continue;
+            }
+            $regex = isset($rule['regex']);
+            $terms[] = new Term(
+                $pattern,
+                (bool) ($rule['case'] ?? ($regex || preg_match('/[A-Z]/', $pattern))),
+                (bool) ($rule['word'] ?? !$regex),
+                $regex,
+                (int) ($rule['score'] ?? 1),
+                $rule['scope'] ?? null,
+                $decision,
+            );
+        }
+
+        return new self($terms, $masks, $threshold);
+    }
+
+    /** Both kinds together: the simple term lists, then structured rules on top. */
+    public function with(self $other): self
+    {
+        return new self([...$this->terms, ...$other->terms], [...$this->exceptions, ...$other->exceptions], $other->threshold);
+    }
+
+    /**
+     * Reads news' Tag columns. Trigger-term syntax: "term!" is a strong trigger (worth STRONG),
+     * "term!!" accepts outright, "!term" is an exception; a term containing an uppercase letter is case-sensitive.
      *
      * @param list<string> $triggerTerms
      * @param list<string> $properNouns
@@ -45,6 +105,10 @@ final readonly class RuleSet
             $caseSensitive = (bool) preg_match('/[A-Z]/', $term);
             if ($negative) {
                 $masks[] = new Term($term, $caseSensitive);
+            } elseif (str_ends_with($raw, '!!')) {
+                $terms[] = new Term($term, $caseSensitive, score: self::STRONG, decision: Term::ACCEPT);
+            } elseif (str_ends_with($raw, '!')) {
+                $terms[] = new Term($term, $caseSensitive, score: self::STRONG);
             } else {
                 $terms[] = new Term($term, $caseSensitive);
             }

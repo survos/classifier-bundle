@@ -36,7 +36,7 @@ final class ArrayVocabulary implements VocabularyInterface
 
     /**
      * Rows as an app would export them: {code, label, definition?, parent?, triggerTerms?,
-     * properNouns?, exceptions?, regularExpressions?}.
+     * properNouns?, exceptions?, regularExpressions?, rules?, threshold?}; see RuleSet::fromRules() for `rules`.
      *
      * @param iterable<array<string, mixed>> $rows
      */
@@ -49,7 +49,8 @@ final class ArrayVocabulary implements VocabularyInterface
                 (string) ($row['label'] ?? $row['code']),
                 (string) ($row['definition'] ?? ''),
                 isset($row['parent']) ? (string) $row['parent'] : null,
-                RuleSet::fromTagFields($row['triggerTerms'] ?? [], $row['properNouns'] ?? [], $row['exceptions'] ?? [], $row['regularExpressions'] ?? []),
+                RuleSet::fromTagFields($row['triggerTerms'] ?? [], $row['properNouns'] ?? [], $row['exceptions'] ?? [], $row['regularExpressions'] ?? [])
+                    ->with(RuleSet::fromRules($row['rules'] ?? [], (int) ($row['threshold'] ?? 1))),
             );
         }
 
