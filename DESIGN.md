@@ -173,12 +173,28 @@ one-sentence definition. Thresholds were swept on these same 300 articles, so tr
   ~220 ms. 182 countries: two requests, $0.00038, ~500 ms. Tree walk: 3.7 requests, $0.00016, ~750 ms.
   Rules: 0.02–0.3 ms, free.
 
-## 6. Status and open questions
-Built: models; IPTC, country and US metro vocabularies; rules, tag-vote and Jev strategies; merger; scorer;
-three commands; 15 tests. The bundle has its own `vendor/` because the mono root is pinned to symfony/ai 0.13
-(folio-bundle) and the TypeSafe bridge needs 0.14. Not built: README, a dev/test split for threshold tuning,
-the blind adjudication set, per-tag definitions.
+## 6. Status (2026-10-05)
 
+**Paused.** The vocabularies come first: `survos/media-topics` (IPTC Media Topics 2026-07-02 and IPTC
+Genre 2024-02-13) and `survos/media-topics-bundle` are released (2.34.22) and on Packagist, and tree-demo
+loads its topic tree from the bundle. Classification resumes on top of them.
+
+Built here: models; country, US metro and (optional) Media Topics vocabularies; rules, tag-vote and Jev
+strategies; merger; scorer; three commands; README; 15 tests. The mono root stays on symfony/ai 0.13
+(moving to 0.14 pulls in bookmark-bundle, which needs `owner_class` configured), so the Jev tests run only
+against this bundle's own `vendor/`.
+
+Next, in order:
+1. Candidate retrieval as the main Media Topics path: shortlist 10–20 topics (search engine over label,
+   definition and ancestor labels), then one Jev Choice over the shortlist; keep the tree walk as a fallback.
+   Benchmark both on the same articles.
+2. Primary vs secondary topic, plus a Genre question asked over the same state in the same request.
+3. Store provenance with each classification: concept URI, role, score, strategy, model, vocabulary version.
+4. Re-import news with Media Topics replacing its 124 bespoke topic tags; that needs either a tag→topic
+   mapping or reclassification, and a hand-checked set to measure it.
+5. Benchmark hygiene: separate tuning and test splits, a blind adjudication set, per-tag definitions.
+
+Open questions for news' labels:
 1. Did editors tag from scratch, or accept/extend the headline tagger's suggestions?
 2. Did N4 copy outlet tags onto articles?
 3. Should "USA" be excluded from the country benchmark, given editors didn't apply it to domestic stories?
