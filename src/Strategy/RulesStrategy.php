@@ -25,7 +25,8 @@ final class RulesStrategy implements StrategyInterface
     public function __construct(
         private readonly array $scopes = [Document::SCOPE_HEADLINE, Document::SCOPE_SUMMARY],
         private readonly string $name = self::NAME,
-    ) {}
+    ) {
+    }
 
     public function name(): string
     {
@@ -42,7 +43,7 @@ final class RulesStrategy implements StrategyInterface
             }
             $hasRules = true;
             $assignment = $this->evaluate($concept, $document, $vocabulary->name());
-            if ($assignment !== null) {
+            if (null !== $assignment) {
                 $assignments[] = $assignment;
             }
         }
@@ -63,17 +64,17 @@ final class RulesStrategy implements StrategyInterface
         $rules = $concept->rules;
         $texts = [];
         $text = function (?string $scope) use (&$texts, $rules, $document): string {
-            return $texts[$scope ?? ''] ??= $this->masked($rules, $scope === null
-            ? implode("\n", array_filter(array_map($document->text(...), $this->scopes), static fn (string $t): bool => $t !== ''))
+            return $texts[$scope ?? ''] ??= $this->masked($rules, null === $scope
+            ? implode("\n", array_filter(array_map($document->text(...), $this->scopes), static fn (string $t): bool => '' !== $t))
             : $document->text($scope));
         };
-        $matches = fn (Term $term): bool => $term->meta !== null
+        $matches = fn (Term $term): bool => null !== $term->meta
             ? $term->matchesMetadata($document)
-            : preg_match($term->toRegex(), $text($term->scope)) === 1;
+            : 1 === preg_match($term->toRegex(), $text($term->scope));
 
         foreach ($rules->terms as $term) {
-            if ($term->decision !== null && $matches($term)) {
-                return $term->decision === Term::ACCEPT
+            if (null !== $term->decision && $matches($term)) {
+                return Term::ACCEPT === $term->decision
                     ? new Assignment($vocabulary, $concept->code, $this->name, (float) max($term->score, RuleSet::STRONG), [$this->describe($term)], decisive: true)
                     : null;
             }
@@ -81,13 +82,13 @@ final class RulesStrategy implements StrategyInterface
         $score = 0;
         $evidence = [];
         foreach ($rules->terms as $term) {
-            if ($term->decision === null && $matches($term)) {
+            if (null === $term->decision && $matches($term)) {
                 $score += $term->score;
                 $evidence[] = $this->describe($term);
             }
         }
 
-        return $evidence !== [] && $score >= $rules->threshold
+        return [] !== $evidence && $score >= $rules->threshold
             ? new Assignment($vocabulary, $concept->code, $this->name, (float) $score, $evidence)
             : null;
     }
@@ -103,7 +104,7 @@ final class RulesStrategy implements StrategyInterface
 
     private function describe(Term $term): string
     {
-        return ($term->meta !== null ? $term->meta.'='.$term->pattern : $term->pattern)
+        return (null !== $term->meta ? $term->meta.'='.$term->pattern : $term->pattern)
             .($term->score < 0 ? sprintf(' (%d)', $term->score) : '');
     }
 }

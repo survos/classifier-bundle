@@ -54,6 +54,7 @@ final class CommandTest extends TestCase
 
     /**
      * @param array<string, string> $input
+     *
      * @return array<string, mixed>
      */
     private function runJson(string $command, array $input): array

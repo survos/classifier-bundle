@@ -21,7 +21,8 @@ final readonly class RuleSet
         public array $terms = [],
         public array $exceptions = [],
         public int $threshold = 1,
-    ) {}
+    ) {
+    }
 
     /** What "term!" is worth: enough to outweigh any ordinary penalty. */
     public const int STRONG = 100;
@@ -59,7 +60,7 @@ final readonly class RuleSet
                 continue;
             }
             $pattern = (string) ($rule['regex'] ?? $rule['match'] ?? '');
-            if ($pattern === '') {
+            if ('' === $pattern) {
                 continue;
             }
             $regex = isset($rule['regex']);
@@ -99,7 +100,7 @@ final readonly class RuleSet
             $raw = trim((string) $raw);
             $negative = str_starts_with($raw, '!');
             $term = trim($raw, '!');
-            if ($term === '') {
+            if ('' === $term) {
                 continue;
             }
             $caseSensitive = (bool) preg_match('/[A-Z]/', $term);
@@ -128,15 +129,16 @@ final readonly class RuleSet
 
     /**
      * @param list<string> $values
+     *
      * @return list<string>
      */
     private static function clean(array $values): array
     {
-        return array_values(array_filter(array_map(trim(...), $values), static fn (string $v): bool => $v !== ''));
+        return array_values(array_filter(array_map(trim(...), $values), static fn (string $v): bool => '' !== $v));
     }
 
     public function isEmpty(): bool
     {
-        return $this->terms === [];
+        return [] === $this->terms;
     }
 }

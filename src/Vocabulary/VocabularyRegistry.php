@@ -20,9 +20,7 @@ final class VocabularyRegistry
 
     public function get(string $name): VocabularyInterface
     {
-        return $this->vocabularies[$name] ?? throw new \InvalidArgumentException(sprintf(
-            'Unknown vocabulary "%s". Known: %s.', $name, implode(', ', array_keys($this->vocabularies)) ?: '(none)',
-        ));
+        return $this->vocabularies[$name] ?? throw new \InvalidArgumentException(sprintf('Unknown vocabulary "%s". Known: %s.', $name, implode(', ', array_keys($this->vocabularies)) ?: '(none)'));
     }
 
     /** @return array<string, VocabularyInterface> */

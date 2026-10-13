@@ -30,7 +30,7 @@ final class Scorer
         foreach ($result->usage as $key => $value) {
             $this->usage[$key] = ($this->usage[$key] ?? 0) + $value;
         }
-        if ($result->abstained !== null) {
+        if (null !== $result->abstained) {
             ++$this->abstained;
             $this->goldInAbstained += count($gold);
 
@@ -82,6 +82,7 @@ final class Scorer
 
     /**
      * @param array{tp: int, fp: int, fn: int} $c
+     *
      * @return array{precision: ?float, recall: ?float, f1: ?float}
      */
     private static function rates(array $c): array
@@ -90,6 +91,6 @@ final class Scorer
         $recall = $c['tp'] + $c['fn'] ? $c['tp'] / ($c['tp'] + $c['fn']) : null;
         $f1 = $precision && $recall ? 2 * $precision * $recall / ($precision + $recall) : null;
 
-        return array_map(static fn (?float $v): ?float => $v === null ? null : round($v, 4), compact('precision', 'recall', 'f1'));
+        return array_map(static fn (?float $v): ?float => null === $v ? null : round($v, 4), compact('precision', 'recall', 'f1'));
     }
 }

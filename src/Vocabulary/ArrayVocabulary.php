@@ -25,7 +25,7 @@ final class ArrayVocabulary implements VocabularyInterface
             $this->concepts[$concept->code] = $concept;
         }
         foreach ($this->concepts as $concept) {
-            if ($concept->parentCode !== null && !isset($this->concepts[$concept->parentCode])) {
+            if (null !== $concept->parentCode && !isset($this->concepts[$concept->parentCode])) {
                 throw new \InvalidArgumentException(sprintf('Concept "%s" has unknown parent "%s".', $concept->code, $concept->parentCode));
             }
             if (!$concept->retired) {
@@ -64,7 +64,7 @@ final class ArrayVocabulary implements VocabularyInterface
 
     public function isTree(): bool
     {
-        return array_keys($this->children) !== [''] && $this->children !== [];
+        return array_keys($this->children) !== [''] && [] !== $this->children;
     }
 
     public function get(string $code): ?Concept

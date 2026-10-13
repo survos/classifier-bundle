@@ -19,10 +19,11 @@ final readonly class Assignment
         public array $evidence = [],
         /** A rule settled it outright (accept): nothing else needed to be consulted. */
         public bool $decisive = false,
-    ) {}
+    ) {
+    }
 
     public function isEditorial(): bool
     {
-        return $this->strategy === self::EDITOR;
+        return self::EDITOR === $this->strategy;
     }
 }

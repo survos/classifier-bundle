@@ -88,7 +88,7 @@ final class JevStrategyTest extends TestCase
         $tie = $this->classify($this->tree(), static fn (array $q): array => array_map(
             static fn (array $question): array => self::choice(array_key_exists('health', $question['criteria'])
                 ? ['health' => 0.48, 'sport' => 0.47, 'none of these' => 0.05]
-                : ['none of these' => 1.0] + array_fill_keys(array_keys($question['criteria']), 0.0)) ,
+                : ['none of these' => 1.0] + array_fill_keys(array_keys($question['criteria']), 0.0)),
             $q,
         ));
         self::assertSame('two paths too close to call', $tie->abstained);
@@ -107,6 +107,7 @@ final class JevStrategyTest extends TestCase
 
     /**
      * @param array<string, float> $probabilities
+     *
      * @return array<string, mixed>
      */
     private static function choice(array $probabilities): array
@@ -118,7 +119,7 @@ final class JevStrategyTest extends TestCase
 
     /**
      * @param \Closure(array<string, array<string, mixed>>): array<string, array<string, mixed>> $answer
-     * @param array<string, string> $questions
+     * @param array<string, string>                                                              $questions
      */
     private function classify(ArrayVocabulary $vocabulary, \Closure $answer, array $questions = [], float $threshold = 0.5, int $beam = 3): Result
     {

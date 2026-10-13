@@ -12,9 +12,9 @@ final readonly class Document
     public const string SCOPE_BODY = 'body';
 
     /**
-     * @param array<string, list<string>> $labels   vocabulary name => concept codes
+     * @param array<string, list<string>>        $labels   vocabulary name => concept codes
      * @param array<string, string|list<string>> $metadata what is already known about the item (host, source, marking, ...);
-     *                                                  rules can test it with Term::$meta
+     *                                                     rules can test it with Term::$meta
      */
     public function __construct(
         public string $id,
@@ -23,7 +23,8 @@ final readonly class Document
         public string $body = '',
         public array $labels = [],
         public array $metadata = [],
-    ) {}
+    ) {
+    }
 
     /** @param array<string, mixed> $row */
     public static function fromArray(array $row): self

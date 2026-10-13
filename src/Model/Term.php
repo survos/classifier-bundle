@@ -29,7 +29,7 @@ final readonly class Term
         public ?string $decision = null,
         public ?string $meta = null,
     ) {
-        if ($decision !== null && $decision !== self::ACCEPT && $decision !== self::REJECT) {
+        if (null !== $decision && self::ACCEPT !== $decision && self::REJECT !== $decision) {
             throw new \InvalidArgumentException(sprintf('Unknown decision "%s"; expected accept or reject.', $decision));
         }
     }
@@ -50,11 +50,11 @@ final readonly class Term
     {
         $value = $document->metadata[$this->meta] ?? null;
         foreach (is_array($value) ? $value : [$value] as $candidate) {
-            if ($candidate === null || $candidate === '') {
+            if (null === $candidate || '' === $candidate) {
                 continue;
             }
             $candidate = (string) $candidate;
-            if ($this->regex ? preg_match($this->toRegex(), $candidate) === 1 : strcasecmp($candidate, $this->pattern) === 0) {
+            if ($this->regex ? 1 === preg_match($this->toRegex(), $candidate) : 0 === strcasecmp($candidate, $this->pattern)) {
                 return true;
             }
         }

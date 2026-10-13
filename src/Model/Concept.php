@@ -14,5 +14,6 @@ final readonly class Concept
         public ?string $parentCode = null,
         public RuleSet $rules = new RuleSet(),
         public bool $retired = false,
-    ) {}
+    ) {
+    }
 }

@@ -11,8 +11,8 @@ namespace Survos\ClassifierBundle\Model;
 final readonly class Result
 {
     /**
-     * @param list<Assignment> $assignments
-     * @param array<string, int|float> $usage e.g. inputTokens, requests
+     * @param list<Assignment>         $assignments
+     * @param array<string, int|float> $usage       e.g. inputTokens, requests
      */
     public function __construct(
         public string $vocabulary,
@@ -20,7 +20,8 @@ final readonly class Result
         public array $assignments = [],
         public ?string $abstained = null,
         public array $usage = [],
-    ) {}
+    ) {
+    }
 
     public static function abstain(string $vocabulary, string $strategy, string $reason): self
     {

@@ -50,7 +50,7 @@ final class ClassifierCommands
                 'withRules' => count(array_filter($concepts, static fn ($c): bool => !$c->rules->isEmpty())),
             ];
         }
-        if ($format === 'json') {
+        if ('json' === $format) {
             $this->json($io, ['vocabularies' => $rows, 'strategies' => array_keys($this->strategies)]);
         } else {
             $io->table(['name', 'tree', 'concepts', 'roots', 'with rules'], array_map(
@@ -88,16 +88,16 @@ final class ClassifierCommands
                 ], $result->assignments),
             ];
         }
-        if ($format === 'json') {
+        if ('json' === $format) {
             $this->json($io, $out);
 
             return Command::SUCCESS;
         }
         foreach ($out as $name => $result) {
             $io->section($name);
-            if ($result['abstained'] !== null) {
+            if (null !== $result['abstained']) {
                 $io->writeln('abstained: '.$result['abstained']);
-            } elseif ($result['assignments'] === []) {
+            } elseif ([] === $result['assignments']) {
                 $io->writeln('no labels');
             } else {
                 $io->table(['code', 'label', 'score', 'evidence'], array_map(
@@ -122,14 +122,14 @@ final class ClassifierCommands
         #[Option('US dollars per million input tokens, for the cost column')] float $price = 0.042,
         #[Option('Output format: text or json')] string $format = 'text',
     ): int {
-        $vocab = $concepts === null ? $this->vocabularies->get($vocabulary) : $this->vocabularyFromFile($vocabulary, $concepts);
+        $vocab = null === $concepts ? $this->vocabularies->get($vocabulary) : $this->vocabularyFromFile($vocabulary, $concepts);
         $strategies = $this->selectStrategies($strategy);
         $scorers = array_map(static fn (): Scorer => new Scorer(), $strategies);
         $samePath = array_fill_keys(array_keys($strategies), 0);
 
         $n = 0;
         foreach (JsonlReader::open($file) as $row) {
-            if ($limit !== null && $n >= $limit) {
+            if (null !== $limit && $n >= $limit) {
                 break;
             }
             ++$n;
@@ -163,7 +163,7 @@ final class ClassifierCommands
             $strategyReport['usage'] = (object) $strategyReport['usage']; // {} rather than [] when empty
             $report['strategies'][$name] = $strategyReport;
         }
-        if ($format === 'json') {
+        if ('json' === $format) {
             $this->json($io, $report);
 
             return Command::SUCCESS;
@@ -187,7 +187,7 @@ final class ClassifierCommands
     private function onSamePath(VocabularyInterface $vocabulary, array $predicted, array $gold): bool
     {
         $lineage = static function (string $code) use ($vocabulary): array {
-            for ($codes = []; $code !== null && !isset($codes[$code]); $code = $vocabulary->get($code)?->parentCode) {
+            for ($codes = []; null !== $code && !isset($codes[$code]); $code = $vocabulary->get($code)?->parentCode) {
                 $codes[$code] = true;
             }
 
@@ -219,13 +219,11 @@ final class ClassifierCommands
     /** @return array<string, StrategyInterface> */
     private function selectStrategies(?string $only): array
     {
-        if ($only === null) {
+        if (null === $only) {
             return $this->strategies;
         }
 
-        return [$only => $this->strategies[$only] ?? throw new \InvalidArgumentException(sprintf(
-            'Unknown strategy "%s". Known: %s.', $only, implode(', ', array_keys($this->strategies)),
-        ))];
+        return [$only => $this->strategies[$only] ?? throw new \InvalidArgumentException(sprintf('Unknown strategy "%s". Known: %s.', $only, implode(', ', array_keys($this->strategies))))];
     }
 
     /** @param array<string, mixed> $data */

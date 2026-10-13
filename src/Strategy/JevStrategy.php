@@ -52,7 +52,8 @@ final class JevStrategy implements StrategyInterface
         private readonly array $questions = [],
         private readonly int $questionsPerRequest = 120,
         private readonly ?CacheInterface $cache = null,
-    ) {}
+    ) {
+    }
 
     public function name(): string
     {
@@ -61,17 +62,17 @@ final class JevStrategy implements StrategyInterface
 
     public function classify(Document $document, VocabularyInterface $vocabulary): Result
     {
-        $state = array_filter(['headline' => $document->headline, 'summary' => $document->summary, 'body' => $document->body], static fn (string $t): bool => $t !== '');
+        $state = array_filter(['headline' => $document->headline, 'summary' => $document->summary, 'body' => $document->body], static fn (string $t): bool => '' !== $t);
         $mode = $this->modes[$vocabulary->name()] ?? ($vocabulary->isTree() ? self::MODE_WALK : self::MODE_LABELS);
         $usage = ['requests' => 0, 'cacheHits' => 0, 'inputTokens' => 0];
 
-        return $mode === self::MODE_WALK
+        return self::MODE_WALK === $mode
             ? $this->walk($state, $vocabulary, $usage)
             : $this->labels($state, $vocabulary, $usage);
     }
 
     /**
-     * @param array<string, string> $state
+     * @param array<string, string>    $state
      * @param array<string, int|float> $usage
      */
     private function labels(array $state, VocabularyInterface $vocabulary, array $usage): Result
@@ -80,15 +81,15 @@ final class JevStrategy implements StrategyInterface
         $questions = [];
         foreach ($vocabulary->all() as $concept) {
             // In a tree, only the leaves are labels; their parents are groupings.
-            if ($vocabulary->children($concept->code) !== []) {
+            if ([] !== $vocabulary->children($concept->code)) {
                 continue;
             }
             $questions[$concept->code] = new NoulQuestion(
                 str_replace('{label}', $concept->label, $template),
-                $concept->definition !== '' ? $concept->definition : null,
+                '' !== $concept->definition ? $concept->definition : null,
             );
         }
-        if ($questions === []) {
+        if ([] === $questions) {
             return Result::abstain($vocabulary->name(), self::NAME, 'vocabulary has no concepts');
         }
 
@@ -110,7 +111,7 @@ final class JevStrategy implements StrategyInterface
     }
 
     /**
-     * @param array<string, string> $state
+     * @param array<string, string>    $state
      * @param array<string, int|float> $usage
      */
     private function walk(array $state, VocabularyInterface $vocabulary, array $usage): Result
@@ -118,21 +119,21 @@ final class JevStrategy implements StrategyInterface
         // A path: the codes chosen so far, the probability of each step, and whether it can go deeper.
         $open = [['codes' => [], 'probs' => []]];
         $closed = [];
-        while ($open !== []) {
+        while ([] !== $open) {
             $questions = $options = [];
             foreach ($open as $i => $path) {
-                $children = $path['codes'] === [] ? $vocabulary->roots() : $vocabulary->children((string) end($path['codes']));
+                $children = [] === $path['codes'] ? $vocabulary->roots() : $vocabulary->children((string) end($path['codes']));
                 $criteria = [];
                 foreach ($children as $child) {
                     $options[$i][$child->label] = $child->code;
-                    $criteria[$child->label] = $child->definition !== '' ? $child->definition : null;
+                    $criteria[$child->label] = '' !== $child->definition ? $child->definition : null;
                 }
-                $parent = $path['codes'] === [] ? null : $vocabulary->get((string) end($path['codes']));
-                $criteria[self::NONE] = $parent === null
+                $parent = [] === $path['codes'] ? null : $vocabulary->get((string) end($path['codes']));
+                $criteria[self::NONE] = null === $parent
                     ? 'The article fits none of these topics, or there is too little text to tell.'
                     : sprintf('The article is about "%s" in general, or none of these narrower topics fits it.', $parent->label);
                 $questions['q'.$i] = new ChoiceQuestion(
-                    $parent === null
+                    null === $parent
                         ? 'Which one of these topics is the main subject of this news article?'
                         : sprintf('The article\'s main subject is within "%s". Which one of these narrower topics is it?', $parent->label),
                     $criteria,
@@ -144,11 +145,11 @@ final class JevStrategy implements StrategyInterface
             foreach ($open as $i => $path) {
                 foreach ($answers->getChoice('q'.$i)->getProbabilities() as $option => $p) {
                     $next = ['codes' => $path['codes'], 'probs' => [...$path['probs'], $p]];
-                    if ($option === self::NONE) {
+                    if (self::NONE === $option) {
                         $next['done'] = true;
                     } else {
                         $next['codes'][] = $options[$i][$option] ?? throw new \UnexpectedValueException(sprintf('Jev answered with an option that was not offered: "%s".', $option));
-                        $next['done'] = $vocabulary->children($options[$i][$option]) === [];
+                        $next['done'] = [] === $vocabulary->children($options[$i][$option]);
                     }
                     $candidates[] = $next + ['score' => self::geometricMean($next['probs'])];
                 }
@@ -162,7 +163,7 @@ final class JevStrategy implements StrategyInterface
         }
 
         $best = $closed[0];
-        if ($best['codes'] === []) {
+        if ([] === $best['codes']) {
             return new Result($vocabulary->name(), self::NAME, abstained: 'none of the top-level concepts fits', usage: $usage);
         }
         if ($best['score'] < $this->minPathScore) {
@@ -184,9 +185,9 @@ final class JevStrategy implements StrategyInterface
     }
 
     /**
-     * @param array<string, string> $state
+     * @param array<string, string>            $state
      * @param array<string, QuestionInterface> $questions
-     * @param array<string, int|float> $usage
+     * @param array<string, int|float>         $usage
      */
     private function ask(array $state, array $questions, array &$usage): Answers
     {
@@ -202,7 +203,7 @@ final class JevStrategy implements StrategyInterface
             return ['answers' => $answers, 'inputTokens' => $tokens];
         };
 
-        if ($this->cache === null) {
+        if (null === $this->cache) {
             $response = $call();
             ++$usage['requests'];
         } else {

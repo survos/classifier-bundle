@@ -102,7 +102,7 @@ class SurvosClassifierBundle extends AbstractSurvosBundle
                 throw new \LogicException('survos_classifier.jev needs symfony/ai-type-safe-platform.');
             }
             $platform = $jev['platform'] ?? 'survos_classifier.jev.platform';
-            if ($jev['platform'] === null) {
+            if (null === $jev['platform']) {
                 $services->set($platform, Platform::class)->factory([Factory::class, 'createPlatform'])->args([$jev['api_key']]);
             }
             $services->set(JevStrategy::class)
@@ -112,7 +112,7 @@ class SurvosClassifierBundle extends AbstractSurvosBundle
                     $jev['modes'] + [CountriesByContinent::NAME => JevStrategy::MODE_LABELS],
                     $jev['questions'],
                 ])
-                ->arg('$cache', $jev['cache'] === null ? null : new Reference($jev['cache']))
+                ->arg('$cache', null === $jev['cache'] ? null : new Reference($jev['cache']))
                 ->tag(self::STRATEGY_TAG);
         }
 

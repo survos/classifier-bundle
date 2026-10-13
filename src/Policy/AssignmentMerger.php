@@ -15,11 +15,12 @@ final class AssignmentMerger
      * same vocabulary are replaced by its new ones; an abstention changes nothing.
      *
      * @param list<Assignment> $existing
+     *
      * @return list<Assignment>
      */
     public function merge(array $existing, Result $result): array
     {
-        if ($result->abstained !== null) {
+        if (null !== $result->abstained) {
             return $existing;
         }
         $kept = array_values(array_filter($existing, static fn (Assignment $a): bool => $a->isEditorial()

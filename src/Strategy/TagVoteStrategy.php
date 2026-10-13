@@ -22,7 +22,8 @@ final class TagVoteStrategy implements StrategyInterface
     public function __construct(
         private readonly string $sourceVocabulary,
         private readonly array $map,
-    ) {}
+    ) {
+    }
 
     public function name(): string
     {
@@ -34,16 +35,16 @@ final class TagVoteStrategy implements StrategyInterface
         $votes = [];
         foreach ($document->labels[$this->sourceVocabulary] ?? [] as $source) {
             $target = $this->map[$source] ?? null;
-            if ($target !== null && $vocabulary->get($target) !== null) {
+            if (null !== $target && null !== $vocabulary->get($target)) {
                 $votes[$target][] = $source;
             }
         }
-        if ($votes === []) {
+        if ([] === $votes) {
             return Result::abstain($vocabulary->name(), self::NAME, 'no mapped labels');
         }
         $counts = array_map(count(...), $votes);
         $winners = array_keys($counts, max($counts), true);
-        if (count($winners) !== 1) {
+        if (1 !== count($winners)) {
             return Result::abstain($vocabulary->name(), self::NAME, 'tie');
         }
         $code = (string) $winners[0];

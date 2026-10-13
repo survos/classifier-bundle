@@ -36,7 +36,7 @@ final class ClassifierTest extends TestCase
     {
         $vocabulary = CountriesByContinent::load();
         self::assertCount(6, $vocabulary->roots());
-        $countries = array_filter($vocabulary->all(), static fn ($c): bool => $c->parentCode !== null);
+        $countries = array_filter($vocabulary->all(), static fn ($c): bool => null !== $c->parentCode);
         $codes = array_map(static fn ($c): string => $c->code, $countries);
         sort($codes);
         self::assertSame(Countries::getCountryCodes(), $codes);
